@@ -1,0 +1,25 @@
+torch==2.0.1
+fancy-einsum==0.0.3
+einops==0.6.1
+typeguard>3.0.0
+torchtext==0.15.2
+torchdata==0.6.1
+tqdm==4.65.0
+transformers[torch]==4.30.2
+datasets==2.12.0
+wandb==0.15.4
+jaxtyping==0.2.20
+nvidia-cublas-cu11==11.10.3.66; platform_system == "Linux"
+nvidia-cuda-cupti-cu11==11.7.101; platform_system == "Linux"
+nvidia-cuda-nvrtc-cu11==11.7.99; platform_system == "Linux"
+nvidia-cuda-runtime-cu11==11.7.99; platform_system == "Linux"
+nvidia-cudnn-cu11==8.5.0.96; platform_system == "Linux"
+nvidia-cufft-cu11==10.9.0.58; platform_system == "Linux"
+nvidia-curand-cu11==10.2.10.91; platform_system == "Linux"
+nvidia-cusolver-cu11==11.4.0.1; platform_system == "Linux"
+nvidia-cusparse-cu11==11.7.4.91; platform_system == "Linux"
+nvidia-nccl-cu11==2.14.3; platform_system == "Linux"
+nvidia-nvtx-cu11==11.7.91; platform_system == "Linux"
+triton==2.0.0; platform_system == "Linux"
+tensorboard==2.13.0
+lightning-bolts==0.7.0

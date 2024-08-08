@@ -1,4 +1,3 @@
-
 {
     "python.formatting.provider": "none",
     "editor.formatOnSave": true,
@@ -11,5 +10,10 @@
     "python.testing.pytestEnabled": true,
     "rewrap.autoWrap.enabled": true,
     "rewrap.reformat": true,
-    "rewrap.wrappingColumn": 100
+    "rewrap.wrappingColumn": 100,
+    "cSpell.words": [
+        "layerwise",
+        "resid",
+        "unembed"
+    ]
 }

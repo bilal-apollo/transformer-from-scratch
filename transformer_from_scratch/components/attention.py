@@ -1,4 +1,5 @@
 """Multi-Head Attention Module"""
+
 import math
 
 import torch
@@ -38,28 +39,30 @@ class MultiHeadAttention(nn.Module):
         """Initialize the MultiHeadAttention module."""
         super().__init__()
 
+        self.config = config
+
         # Check the params
-        if config.d_model % config.d_head != 0:
-            raise ValueError("d_model must be a multiple of d_head")
+        if config.d_resid % config.d_head != 0:
+            raise ValueError("d_resid must be a multiple of d_head")
 
         # Set number of heads
-        n_heads: int = int(config.d_model / config.d_head)
+        n_heads: int = int(config.d_resid / config.d_head)
 
         # Store d_head sqrt for the attention calculation
         self.d_head_sqrt: float = math.sqrt(config.d_head)
 
         # Create the parameters
         self.weight_query: BatchQKVWeight = nn.Parameter(
-            torch.empty(n_heads, config.d_model, config.d_head),
+            torch.empty(n_heads, config.d_resid, config.d_head),
         )
         self.weight_key: BatchQKVWeight = nn.Parameter(
-            torch.empty(n_heads, config.d_model, config.d_head),
+            torch.empty(n_heads, config.d_resid, config.d_head),
         )
         self.weight_value: BatchQKVWeight = nn.Parameter(
-            torch.empty(n_heads, config.d_model, config.d_head),
+            torch.empty(n_heads, config.d_resid, config.d_head),
         )
         self.weight_out: BatchWeightOutput = nn.Parameter(
-            torch.empty(config.d_model, config.d_model),
+            torch.empty(config.d_resid, config.d_model),
         )
 
         # Initialise the weights
@@ -74,6 +77,8 @@ class MultiHeadAttention(nn.Module):
         minus_infinity = torch.full((config.n_ctx, config.n_ctx), float("-inf"))
         minus_infinity_triangle = torch.triu(minus_infinity, diagonal=1)
         self.register_buffer("minus_infinity_triangle", minus_infinity_triangle)
+        
+        self.ln = nn.LayerNorm(config.d_resid)
 
     def mask(self, attention_pattern: BatchAttentionPattern) -> BatchAttentionPattern:
         """Mask the attention pattern.
@@ -144,20 +149,24 @@ class MultiHeadAttention(nn.Module):
 
         https://arxiv.org/pdf/1706.03762.pdf (p5)
         """
+
+        x_resid = residual_stream[:, :, : self.config.d_resid]
+        x_resid = self.ln(x_resid)
+        
         # Create the query, key and value
         query: BatchQuery = einsum(
-            "batch pos d_model, head d_model d_head -> batch head pos d_head",
-            residual_stream,
+            "batch pos d_resid, head d_resid d_head -> batch head pos d_head",
+            x_resid,
             self.weight_query,
         )
         key: BatchKey = einsum(
-            "batch pos d_model, head d_model d_head -> batch head pos d_head",
-            residual_stream,
+            "batch pos d_resid, head d_resid d_head -> batch head pos d_head",
+            x_resid,
             self.weight_key,
         )
         value: BatchValue = einsum(
-            "batch pos d_model, head d_model d_head -> batch head pos d_head",
-            residual_stream,
+            "batch pos d_resid, head d_resid d_head -> batch head pos d_head",
+            x_resid,
             self.weight_value,
         )
 
@@ -171,10 +180,10 @@ class MultiHeadAttention(nn.Module):
 
         # Multiply by W_O
         multi_head_out: BatchResidualStream = einsum(
-            "batch pos d_model_a, d_model_a d_model_b -> batch pos d_model_b",
+            "batch pos d_resid, d_resid d_model -> batch pos d_model",
             attn_concat,
             self.weight_out,
         )
 
         # Return the attention output
-        return multi_head_out
+        return multi_head_out 

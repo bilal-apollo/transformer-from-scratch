@@ -25,9 +25,7 @@ class Layer(nn.Module):
 
         # Create the feed forward and attention sub-layers
         self.feed_forward = MLP(config)
-        self.layer_norm_ff = nn.LayerNorm(config.d_model)
         self.attention = MultiHeadAttention(config)
-        self.layer_norm_attn = nn.LayerNorm(config.d_model)
 
     def forward(self, residual_stream: BatchResidualStream) -> BatchResidualStream:
         """Forward pass.
@@ -39,9 +37,10 @@ class Layer(nn.Module):
             ResidualStream: Updated residual stream
         """
         # Attention
+        
         attn = self.attention(residual_stream)
-        attn_add_norm = residual_stream + self.layer_norm_ff(attn)
+        attn_add_norm = residual_stream + attn
 
         # Feed forward
         mlp_output = self.feed_forward(attn_add_norm)
-        return attn_add_norm + self.layer_norm_attn(mlp_output)
+        return attn_add_norm + mlp_output

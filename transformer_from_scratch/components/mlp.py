@@ -35,7 +35,7 @@ class MLP(nn.Module):
         super().__init__()
 
         self.weight_inner: InnerWeights = nn.Parameter(
-            torch.empty(config.d_model, config.d_mlp),
+            torch.empty(config.d_resid, config.d_mlp),
         )
 
         self.bias_inner: InnerBias = nn.Parameter(torch.zeros(config.d_mlp))
@@ -54,6 +54,10 @@ class MLP(nn.Module):
         # We use Xavier Initialization for the outer weights, as we have no activation function
         nn.init.xavier_normal_(self.weight_outer)
 
+        self.ln = nn.LayerNorm(config.d_resid)
+        
+        self.config = config
+
     def forward(self, residual_stream: BatchResidualStream) -> BatchResidualStream:
         """Forward Pass through the MLP Sub-Layer.
 
@@ -64,9 +68,12 @@ class MLP(nn.Module):
             ResidualStream: MLP output
         """
         # Inner = relu(x W1 + b1)
+        x_resid = residual_stream[:, :, :self.config.d_resid]
+        x_resid = self.ln(x_resid)
+
         inner_pre_bias: BatchHidden = einsum(
             "batch pos d_model, d_model d_hidden -> batch pos d_hidden",
-            residual_stream,
+            x_resid,
             self.weight_inner,
         )
         inner = inner_pre_bias + self.bias_inner

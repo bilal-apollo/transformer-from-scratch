@@ -1,4 +1,6 @@
 """Positional Encoding Module."""
+
+import einops
 import torch
 from jaxtyping import Float
 from torch import Tensor
@@ -162,3 +164,42 @@ class SinusoidalPositionalEncoding(torch.nn.Module):
             :,
         ]
         return trimmed_pos_encoding + embedding
+
+
+import torch
+import torch.nn as nn
+
+
+class LearnedPositionalEncoding(nn.Module):
+    """Learned Absolute Positional Encoding Module.
+
+    This module implements a learned positional encoding, where the positional embeddings
+    are parameters that are updated during training, as opposed to being fixed like in
+    the sinusoidal positional encoding.
+
+    The learned positional encoding allows the model to potentially learn more flexible
+    position representations, which might be beneficial for certain tasks or datasets.
+    """
+
+    def __init__(self, config: TransformerConfig) -> None:
+        """Initialize the learned positional encoding."""
+        super().__init__()
+
+        # Create a learnable parameter for positional encodings
+        self.pos_embedding = nn.Parameter(torch.empty(config.n_ctx, config.d_model))
+        nn.init.xavier_normal_(self.pos_embedding)
+
+    def forward(self, embedding: torch.Tensor) -> torch.Tensor:
+        """Apply the learned positional encoding to the given input embedding.
+
+        Args:
+            embedding (torch.Tensor): The input embedding with shape (batch_size, tokens, d_model).
+
+        Returns:
+            torch.Tensor: The output embedding with positional encoding applied, having the same
+                shape as the input embedding (batch_size, tokens, d_model).
+        """
+        batch, seq = embedding.shape[:2]
+        return einops.repeat(
+            self.pos_embedding[:seq, :], "seq d_model -> batch seq d_model", batch=batch
+        )

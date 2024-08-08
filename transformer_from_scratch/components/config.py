@@ -7,7 +7,7 @@ class TransformerConfig:
 
     Defaults to GPT2"""
 
-    d_model: int = 768
+    d_model: int = 1536
     """Number of residual stream features per token."""
 
     d_vocab: int = 50257
@@ -27,3 +27,13 @@ class TransformerConfig:
 
     n_layers: int = 12
     """Number of layers (attention + mlp = 1 layer) in the architecture."""
+    
+    output_stream: bool = False
+    """Whether to use the output stream"""
+    
+    d_output_stream: int = 0
+    """Dimension of the output stream"""
+    
+    def __post_init__(self):
+        self.d_resid = self.d_model - self.d_output_stream 
+

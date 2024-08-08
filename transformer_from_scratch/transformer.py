@@ -1,10 +1,12 @@
 """Transformer."""
 from torch import nn
+import torch
 from transformer_from_scratch.components.config import TransformerConfig
 
 from transformer_from_scratch.components.embed_unembed import Embed, Unembed
 from transformer_from_scratch.components.layer import Layer
 from transformer_from_scratch.components.positional_encoding import (
+    LearnedPositionalEncoding,
     SinusoidalPositionalEncoding,
 )
 from transformer_from_scratch.types import (
@@ -26,7 +28,7 @@ class Transformer(nn.Module):
         self.unembed = Unembed(config)
 
         # Positional encoding
-        self.positional_encoding = SinusoidalPositionalEncoding(config)
+        self.positional_encoding = LearnedPositionalEncoding(config)
 
         # Layers
         self.layers = nn.ModuleList([])
@@ -45,13 +47,20 @@ class Transformer(nn.Module):
         Returns:
             BatchLogits: Logits representing log probabilities for the tokens
         """
+        
+        batch, seq = tokens.shape
+        
+        output = torch.empty(self.config.n_layers+1, batch, seq, self.config.d_vocab).to(tokens.device)
+        
         # Embed + positional encoding
         residual_stream: BatchResidualStream = self.embed(tokens)
-        residual_stream = self.positional_encoding(residual_stream)
+        residual_stream += self.positional_encoding(residual_stream)
+        output[0] = self.unembed(residual_stream)
 
         # Loop through layers
-        for layer in self.layers:
+        for i, layer in enumerate(self.layers):
             residual_stream = layer(residual_stream)
-
+            output[i+1] = self.unembed(residual_stream)
+        
         # Unembed and return
-        return self.unembed(residual_stream)
+        return output

@@ -88,10 +88,13 @@ class Unembed(nn.Module):
         super().__init__()
 
         self.unembed_weights: EmbedUnembedWeights = nn.Parameter(
-            torch.empty(config.d_model, config.d_vocab),
+            torch.empty(config.d_output_stream, config.d_vocab),
         )
 
         nn.init.xavier_uniform_(self.unembed_weights)
+
+        self.ln_final = nn.LayerNorm(config.d_output_stream)
+        self.config = config
 
     def forward(self, residual_stream: BatchResidualStream) -> BatchLogits:
         """Forward Pass through the Unembedding Layer.
@@ -102,8 +105,11 @@ class Unembed(nn.Module):
         Returns:
             Logits: Logits representing log probabilities for the tokens
         """
+
+        x_output = residual_stream[:, :, -self.config.d_output_stream:]
+        x_output_ln = self.ln_final(x_output)
         return einsum(
             "batch pos model, model vocab -> batch pos vocab",
-            residual_stream,
+            x_output_ln,
             self.unembed_weights,
         )
